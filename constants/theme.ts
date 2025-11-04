@@ -1,5 +1,6 @@
 const tintColorLight = "#3A7CFD";
 const tintColorDark = "#494C6B";
+const tintColorAll = "#3A7CFD";
 
 export const Colors = {
   light: {
@@ -7,7 +8,7 @@ export const Colors = {
     textSlashed: "#D1D2DA",
     background: "#FAFAFA",
     cardBackground: "#FFFFFF",
-    tint: tintColorLight,
+    tint: tintColorAll,
     icon: "#FFFF",
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
@@ -20,7 +21,7 @@ export const Colors = {
     textSlashed: "#4D5067",
     background: "#171823",
     cardBackground: "#25273D",
-    tint: tintColorDark,
+    tint: tintColorAll,
     icon: "#FFFF",
     tabIconDefault: "#5B5E7E",
     tabIconSelected: tintColorDark,

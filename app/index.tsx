@@ -31,6 +31,11 @@ export default function HomeScreen() {
 
   const [newTodo, setNewTodo] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
+  const [editingTodo, setEditingTodo] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
+  const [editText, setEditText] = useState("");
 
   const todos = useQuery(api.todos.getTodos) || [];
   const createTodo = useMutation(api.todos.createTodo);
@@ -54,6 +59,11 @@ export default function HomeScreen() {
     await reorderTodos({ updates });
   };
 
+  const handleEditTodo = (id: string, text: string) => {
+    setEditingTodo({ id, text });
+    setEditText(text);
+  };
+
   const filteredTodos = todos.filter((todo) => {
     if (filter === "active") return !todo.completed;
     if (filter === "completed") return todo.completed;
@@ -70,10 +80,11 @@ export default function HomeScreen() {
     >
       <TodoItem
         id={item._id}
-        text={item.text}
+        text={item.title}
         completed={item.completed}
         onToggle={() => toggleTodo({ id: item._id as Id<"todos"> })}
         onDelete={() => deleteTodo({ id: item._id as Id<"todos"> })}
+        onEdit={() => handleEditTodo(item._id, item.text)}
       />
     </TouchableOpacity>
   );
@@ -88,98 +99,100 @@ export default function HomeScreen() {
       <ImageBackground
         source={
           theme === "dark"
-            ? require("../assets/images/bg-desktop-dark.jpg")
-            : require("../assets/images/bg-desktop-light.png")
+            ? require("@/assets/images/bg-desktop-dark.jpg")
+            : require("@/assets/images/bg-desktop-light.png")
         }
-        style={[
-          styles.header,
-          { flexDirection: "column", alignContent: "center" },
-        ]}
+        style={styles.header}
+        resizeMode="cover"
       >
-        <SafeAreaView
-        // style={{marginHorizontal:}}
-        >
-          <View style={[styles.headerContent, { flex: 1, maxWidth: 540 }]}>
-            <Text style={styles.title}>T O D O</Text>
-            <ThemeToggle />
-          </View>
+        <SafeAreaView style={styles.headerSafeArea}>
+          <View style={styles.headerWrapper}>
+            <View style={styles.headerContent}>
+              <Text style={styles.title}>T O D O</Text>
+              <ThemeToggle />
+            </View>
 
-          {/* Input */}
-          <View
-            style={[styles.inputContainer, { backgroundColor: cardBackground }]}
-          >
-            <View style={styles.checkboxPlaceholder} />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="Create a new todo..."
-              placeholderTextColor="#9495A5"
-              value={newTodo}
-              onChangeText={setNewTodo}
-              onSubmitEditing={handleAddTodo}
-              returnKeyType="done"
-            />
+            {/* Input */}
+            <View
+              style={[
+                styles.inputContainer,
+                { backgroundColor: cardBackground },
+              ]}
+            >
+              <View style={styles.checkboxPlaceholder} />
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="Create a new todo..."
+                placeholderTextColor="#9495A5"
+                value={newTodo}
+                onChangeText={setNewTodo}
+                onSubmitEditing={handleAddTodo}
+                returnKeyType="done"
+              />
+            </View>
           </View>
         </SafeAreaView>
       </ImageBackground>
 
-      {/* Todo List */}
+      {/* Todo List - Centered Content */}
+      <View style={styles.contentWrapper}>
+        <View style={styles.centeredContent}>
+          {/* Todo List Container */}
+          <View
+            style={[styles.listContainer, { backgroundColor: cardBackground }]}
+          >
+            <DraggableFlatList
+              data={filteredTodos}
+              renderItem={renderTodoItem}
+              keyExtractor={(item) => item._id}
+              onDragEnd={({ data }) => handleReorder(data)}
+            />
 
-      <View
-        style={{
-          paddingHorizontal: 24,
-          marginTop: -50,
-          flexDirection: "column",
-          alignContent: "center",
-        }}
-      >
-        <View
-          style={[styles.listContainer, { backgroundColor: cardBackground }]}
-        >
-          <DraggableFlatList
-            data={filteredTodos}
-            renderItem={renderTodoItem}
-            keyExtractor={(item) => item._id}
-            onDragEnd={({ data }) => handleReorder(data)}
-          />
-          <View style={[{ backgroundColor: cardBackground, margin: 20, flexDirection:"row", justifyContent:"space-between" }]}>
-            <Text style={[styles.footerText, { color: textColor }]}>
-              {activeCount} items left
-            </Text>
-            <TouchableOpacity onPress={() => clearCompleted()}>
-            <Text style={[styles.footerText, { color: textColor }]}>
-              Clear Completed
-            </Text>
-          </TouchableOpacity>
-          </View>
-        </View>
-        {/* Footer */}
-        <View style={[styles.footer,{ backgroundColor: cardBackground, marginTop: 16, borderRadius:5 }]} >
-          <View style={styles.filterContainer}>
-            {(["all", "active", "completed"] as FilterType[]).map((f) => (
-              <TouchableOpacity
-                key={f}
-                onPress={() => setFilter(f)}
-                style={styles.filterButton}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    { color: filter === f ? tintColor : "#9495A5" },
-                    filter === f && styles.filterTextActive,
-                  ]}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+            {/* Items Left & Clear Completed */}
+            <View style={styles.listFooter}>
+              <Text style={[styles.footerText, { color: textColor }]}>
+                {activeCount} items left
+              </Text>
+              <TouchableOpacity onPress={() => clearCompleted()}>
+                <Text style={[styles.footerText, { color: textColor }]}>
+                  Clear Completed
                 </Text>
               </TouchableOpacity>
-            ))}
+            </View>
           </View>
 
-          
-        </View>
+          {/* Filter Buttons */}
+          <View
+            style={[styles.filterCard, { backgroundColor: cardBackground }]}
+          >
+            <View style={styles.filterContainer}>
+              {(["all", "active", "completed"] as FilterType[]).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setFilter(f)}
+                  style={styles.filterButton}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      {
+                        color: filter === f ? tintColor : "#9495A5",
+                        fontWeight: filter === f ? "bold" : "normal",
+                      },
+                    ]}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-        <Text style={[styles.hint, { color: textColor }]}>
-          Drag and drop to reorder list
-        </Text>
+          {/* Hint Text */}
+          <Text style={[styles.hint, { color: textColor }]}>
+            Drag and drop to reorder list
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -191,14 +204,23 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 300,
+    width: "100%",
+  },
+  headerSafeArea: {
+    flex: 1,
+    alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 20,
+  },
+  headerWrapper: {
+    width: "100%",
+    maxWidth: 540,
   },
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 40,
+    marginTop: 20,
   },
   title: {
     fontSize: 40,
@@ -229,6 +251,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
   },
+  contentWrapper: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  centeredContent: {
+    width: "100%",
+    maxWidth: 540,
+    marginTop: -50,
+  },
   listContainer: {
     borderRadius: 5,
     shadowColor: "#000",
@@ -236,10 +268,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 5,
-    flex: 1,
-    maxWidth: 540,
+    overflow: "hidden",
   },
-  footer: {
+  listFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -250,21 +281,26 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
   },
+  filterCard: {
+    marginTop: 16,
+    borderRadius: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+    padding: 20,
+  },
   filterContainer: {
     flexDirection: "row",
-    flex:1,
-    justifyContent:"center",
+    justifyContent: "center",
     gap: 16,
   },
   filterButton: {
     paddingVertical: 4,
-    fontWeight:700,
   },
   filterText: {
     fontSize: 14,
-  },
-  filterTextActive: {
-    fontWeight: "bold",
   },
   hint: {
     textAlign: "center",

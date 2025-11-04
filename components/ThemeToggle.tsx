@@ -1,24 +1,16 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
 export function ThemeToggle() {
-  const colorScheme = useColorScheme();
-  // Add safety check
-  if (!colorScheme) {
-    return null;
-  }
-
-  const { theme, toggleTheme } = colorScheme;
-  const iconColor = useThemeColor({}, 'icon');
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <TouchableOpacity onPress={toggleTheme} style={styles.button}>
       <Ionicons
         name={theme === 'dark' ? 'sunny' : 'moon'}
         size={26}
-        color={iconColor}
+        color="#FFF"
       />
     </TouchableOpacity>
   );
