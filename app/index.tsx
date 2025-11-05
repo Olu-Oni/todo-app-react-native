@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import DraggableFlatList, {
   RenderItemParams,
+  ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "../convex/_generated/api";
@@ -29,17 +30,21 @@ export default function HomeScreen() {
   const cardBackground = useThemeColor({}, "cardBackground");
   const tintColor = useThemeColor({}, "tint");
 
+  // Debug log
+  console.log('Current theme in HomeScreen:', theme);
+
+  // Define background images
+  const backgroundImage = theme === "dark"
+    ? require("@/assets/images/bg-desktop-dark.jpg")
+    : require("@/assets/images/bg-desktop-light.png");
+
   const [newTodo, setNewTodo] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
-  const [editingTodo, setEditingTodo] = useState<{
-    id: string;
-    text: string;
-  } | null>(null);
-  const [editText, setEditText] = useState("");
 
   const todos = useQuery(api.todos.getTodos) || [];
   const createTodo = useMutation(api.todos.createTodo);
   const toggleTodo = useMutation(api.todos.toggleTodo);
+  const updateTodo = useMutation(api.todos.updateTodo); // Add this
   const deleteTodo = useMutation(api.todos.deleteTodo);
   const reorderTodos = useMutation(api.todos.reorderTodos);
   const clearCompleted = useMutation(api.todos.clearCompleted);
@@ -59,34 +64,41 @@ export default function HomeScreen() {
     await reorderTodos({ updates });
   };
 
-  const handleEditTodo = (id: string, text: string) => {
-    setEditingTodo({ id, text });
-    setEditText(text);
+  const handleUpdateTodo = async (id: string, newText: string) => {
+    await updateTodo({ 
+      id: id as Id<"todos">, 
+      title: newText 
+    });
   };
 
-  const filteredTodos = todos.filter((todo) => {
-    if (filter === "active") return !todo.completed;
-    if (filter === "completed") return todo.completed;
-    return true;
-  });
+  const filteredTodos = todos
+    .filter((todo) => {
+      if (filter === "active") return !todo.completed;
+      if (filter === "completed") return todo.completed;
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort completed tasks to the top
+      if (a.completed && !b.completed) return -1;
+      if (!a.completed && b.completed) return 1;
+      return 0;
+    });
 
   const activeCount = todos.filter((t) => !t.completed).length;
 
   const renderTodoItem = ({ item, drag, isActive }: RenderItemParams<any>) => (
-    <TouchableOpacity
-      onLongPress={drag}
-      disabled={isActive}
-      style={[isActive && { opacity: 0.5 }]}
-    >
+    <ScaleDecorator>
       <TodoItem
         id={item._id}
         text={item.title}
         completed={item.completed}
         onToggle={() => toggleTodo({ id: item._id as Id<"todos"> })}
         onDelete={() => deleteTodo({ id: item._id as Id<"todos"> })}
-        onEdit={() => handleEditTodo(item._id, item.text)}
+        onEdit={(newText) => handleUpdateTodo(item._id, newText)}
+        onLongPress={drag}
+        isActive={isActive}
       />
-    </TouchableOpacity>
+    </ScaleDecorator>
   );
 
   return (
@@ -96,43 +108,75 @@ export default function HomeScreen() {
       />
 
       {/* Header with Background */}
-      <ImageBackground
-        source={
-          theme === "dark"
-            ? require("@/assets/images/bg-desktop-dark.jpg")
-            : require("@/assets/images/bg-desktop-light.png")
-        }
-        style={styles.header}
-        resizeMode="cover"
-      >
-        <SafeAreaView style={styles.headerSafeArea}>
-          <View style={styles.headerWrapper}>
-            <View style={styles.headerContent}>
-              <Text style={styles.title}>T O D O</Text>
-              <ThemeToggle />
-            </View>
+      {theme === "dark" ? (
+        <ImageBackground
+          source={require("@/assets/images/bg-desktop-dark.jpg")}
+          style={styles.header}
+          resizeMode="cover"
+        >
+          <SafeAreaView style={styles.headerSafeArea}>
+            <View style={styles.headerWrapper}>
+              <View style={styles.headerContent}>
+                <Text style={styles.title}>T O D O</Text>
+                <ThemeToggle />
+              </View>
 
-            {/* Input */}
-            <View
-              style={[
-                styles.inputContainer,
-                { backgroundColor: cardBackground },
-              ]}
-            >
-              <View style={styles.checkboxPlaceholder} />
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Create a new todo..."
-                placeholderTextColor="#9495A5"
-                value={newTodo}
-                onChangeText={setNewTodo}
-                onSubmitEditing={handleAddTodo}
-                returnKeyType="done"
-              />
+              {/* Input */}
+              <View
+                style={[
+                  styles.inputContainer,
+                  { backgroundColor: cardBackground },
+                ]}
+              >
+                <View style={styles.checkboxPlaceholder} />
+                <TextInput
+                  style={[styles.input, { color: textColor }]}
+                  placeholder="Create a new todo..."
+                  placeholderTextColor="#9495A5"
+                  value={newTodo}
+                  onChangeText={setNewTodo}
+                  onSubmitEditing={handleAddTodo}
+                  returnKeyType="done"
+                />
+              </View>
             </View>
-          </View>
-        </SafeAreaView>
-      </ImageBackground>
+          </SafeAreaView>
+        </ImageBackground>
+      ) : (
+        <ImageBackground
+          source={require("@/assets/images/bg-desktop-light.png")}
+          style={styles.header}
+          resizeMode="cover"
+        >
+          <SafeAreaView style={styles.headerSafeArea}>
+            <View style={styles.headerWrapper}>
+              <View style={styles.headerContent}>
+                <Text style={styles.title}>T O D O</Text>
+                <ThemeToggle />
+              </View>
+
+              {/* Input */}
+              <View
+                style={[
+                  styles.inputContainer,
+                  { backgroundColor: cardBackground },
+                ]}
+              >
+                <View style={styles.checkboxPlaceholder} />
+                <TextInput
+                  style={[styles.input, { color: textColor }]}
+                  placeholder="Create a new todo..."
+                  placeholderTextColor="#9495A5"
+                  value={newTodo}
+                  onChangeText={setNewTodo}
+                  onSubmitEditing={handleAddTodo}
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      )}
 
       {/* Todo List - Centered Content */}
       <View style={styles.contentWrapper}>
